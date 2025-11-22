@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELYA Chat IA</title>
+
+    <style>
+        /* -------- RESET & GLOBAL STYLE -------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: sans-serif;
+            /* Arrière-plan rouge dégradé */
+            background: linear-gradient(135deg, #c41e3a, #8b0000);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* -------- CHAT CONTAINER -------- */
+        .chat-container {
+            flex: 1;
+            max-width: 800px;
+            margin: auto;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            text-align: center;
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* -------- MESSAGES HISTORY (Ancien chat-history) -------- */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1); /* Légèrement transparent */
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* -------- MESSAGE BUBBLES (Anciens message) -------- */
+        .message-bubble {
+            background: white;
+            padding: 12px 18px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            max-width: 85%;
+            line-height: 1.4;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-message {
+            margin-left: auto;
+            background-color: #ffe0e0; /* Couleur claire pour l'utilisateur */
+        }
+        .ai-message {
+            margin-right: auto;
+            background-color: #ffffff; /* Couleur blanche pour l'IA */
+        }
+        
+        .ai-message.thinking {
+            font-style: italic;
+            opacity: 0.7;
+        }
+
+        /* -------- FACE CONTAINER (Nouveau) -------- */
+        .face-container {
+            width: 280px;
+            height: 310px;
+            margin: 0 auto 15px;
+            position: relative;
+        }
+        /* ======== MANGA EYES ======== */
+        .eye {
+            position: absolute;
+            width: 85px;
+            height: 110px;
+            top: 20%;
+            border-radius: 50% 50% 60% 60%;
+            overflow: hidden;
+            background: #fff;
+            border-top: 5px solid #000;
+            border-bottom: 2px solid #333;
+        }
+        .eye.left { left: 10%; }
+        .eye.right { right: 10%; }
+        /* IRIS BLEU PROFOND */
+        .iris {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 40%,
+                #d0eaff,
+                #6bb7ff,
+                #007bff,
+                #003b7a,
+                #001a3d
+            );
+        }
+        /* Pupille noire */
+        .pupil {
+            position: absolute;
+            width: 25px;
+            height: 40px;
+            background: radial-gradient(circle, #000, #111);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: 0.15s;
+        }
+        /* reflets manga */
+        .glow1 {
+            position: absolute;
+            width: 18px; height: 18px;
+            top: 25%; left: 28%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .glow2 {
+            position: absolute;
+            width: 10px; height: 10px;
+            bottom: 22%; right: 28%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        /* clignement */
+        .eye.blinking {
+            height: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .eye.blinking .iris,
+        .eye.blinking .pupil,
+        .eye.blinking .glow1,
+        .eye.blinking .glow2 { opacity: 0; }
+
+        /* ======== MANGA MOUTH ======== */
+        .mouth {
+            position: absolute;
+            width: 100px;
+            height: 55px;
+            bottom: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        /* lèvres manga */
+        .lips {
+            position: absolute;
+            width: 100%;
+            height: 22px;
+            top: 0;
+            border-bottom: 3px solid #4a0000;
+            border-radius: 0 0 45px 45px;
+        }
+        /* cavité */
+        .mouth-inside {
+            position: absolute;
+            width: 70%;
+            height: 60%;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: radial-gradient(circle at 50% 80%, #400000, #000);
+            border-radius: 50%;
+            transition: 0.15s;
+        }
+        /* bouche ouverte en parlant */
+        .mouth.talking .mouth-inside {
+            height: 100%;
+            width: 90%;
+            border-radius: 50%;
+        }
+        .mouth.talking .lips {
+            height: 30px;
+            border-bottom-width: 4px;
+        }
+
+        /* -------- INPUT ZONE -------- */
+        .chat-input {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        .chat-input input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 15px;
+            border: 2px solid #a00000; /* Bordure rouge */
+            font-size: 16px;
+        }
+        .chat-input button {
+            padding: 12px 25px;
+            border-radius: 15px;
+            background: #8b0000; /* Bouton rouge foncé */
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+        }
+        .chat-input button:hover {
+            background-color: #c41e3a;
+        }
+
+        .disclaimer {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            ELYA Chat IA 💬
+        </div>
+        
+        <div class="messages-area" id="chat-history">
+            </div>
+
+        <div class="face-container">
+            <div class="eye left" id="leftEye">
+                <div class="iris">
+                    <div class="pupil" id="leftPupil"></div>
+                    <div class="glow1"></div>
+                    <div class="glow2"></div>
+                </div>
+            </div>
+
+            <div class="eye right" id="rightEye">
+                <div class="iris">
+                    <div class="pupil" id="rightPupil"></div>
+                    <div class="glow1"></div>
+                    <div class="glow2"></div>
+                </div>
+            </div>
+
+            <div class="mouth" id="mouth">
+                <div class="lips"></div>
+                <div class="mouth-inside"></div>
+            </div>
+        </div>
+        
+        <form class="chat-input" id="chat-form">
+            <input type="text" id="user-input" placeholder="Écris ton message ou une commande spéciale ici..." required>
+            <button type="submit" id="send-button">Envoyer</button>
+        </form>
+
+        <div class="disclaimer">
+            Ce service est hébergé sur Render. Les temps de réponse dépendent des ressources serveur.
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatHistory = document.getElementById('chat-history');
+        const sendButton = document.getElementById('send-button');
+        
+        // ÉLÉMENTS POUR L'ANIMATION
+        const leftPupil = document.getElementById("leftPupil");
+        const rightPupil = document.getElementById("rightPupil");
+        const leftEye = document.getElementById("leftEye");
+        const rightEye = document.getElementById("rightEye");
+        const mouth = document.getElementById("mouth");
+
+        /* ANIMATION FUNCTIONS */
+        function talk(duration) {
+            const interval = 150;
+            let elapsed = 0;
+            const loop = setInterval(() => {
+                mouth.classList.toggle("talking");
+                elapsed += interval;
+                if (elapsed >= duration) {
+                    clearInterval(loop);
+                    mouth.classList.remove("talking");
+                }
+            }, interval);
+        }
+
+        function blink() {
+            leftEye.classList.add("blinking");
+            rightEye.classList.add("blinking");
+            setTimeout(() => {
+                leftEye.classList.remove("blinking");
+                rightEye.classList.remove("blinking");
+            }, 150);
+        }
+        setInterval(() => blink(), Math.random() * 2000 + 3000); // Clignement aléatoire
+
+        setInterval(() => {
+            const posX = Math.random() * 15 - 7;
+            const posY = Math.random() * 8 - 4;
+            leftPupil.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px))`;
+            rightPupil.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px))`;
+        }, 2000); // Regard aléatoire
+
+
+        /* MESSAGE HANDLING */
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message-bubble');
+            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            // Déclenche l'animation de la bouche pour les messages de l'IA
+            if (sender === 'ai' && !messageDiv.classList.contains('thinking')) {
+                // Estimer la durée de parole basée sur la longueur du texte
+                talk(text.length * 50 + 500); 
+            }
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage('user', message);
+            userInput.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = '...';
+
+            // Message d'attente (mis à jour pour ELYA)
+            const thinkingMessage = document.createElement('div');
+            thinkingMessage.classList.add('message-bubble', 'ai-message', 'thinking');
+            thinkingMessage.textContent = '... ELYA réfléchit (cela peut prendre du temps sur CPU)...';
+            chatHistory.appendChild(thinkingMessage);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                // APPEL API INCHANGÉ POUR LA COMPATIBILITÉ PYTHON
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                // Retirer le message d'attente
+                const existingThinking = document.querySelector('.thinking');
+                if (existingThinking) {
+                    chatHistory.removeChild(existingThinking);
+                }
+                
+                // Afficher la réponse de l'IA
+                addMessage('ai', data.reply);
+
+            } catch (error) {
+                console.error('Erreur API:', error);
+                const existingThinking = document.querySelector('.thinking');
+                if (existingThinking) {
+                    chatHistory.removeChild(existingThinking);
+                }
+                addMessage('ai', 'Désolé, je n\'ai pas pu joindre mon serveur (Erreur de connexion).');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Envoyer';
+            }
+        });
+        
+        // Initialisation : Pas de message, seulement un léger mouvement initial (optionnel)
+        // La fonction talk(4000) a été retirée pour supprimer le message de base.
+    </script>
+</body>
+</html>
